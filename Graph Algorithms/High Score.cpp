@@ -30,7 +30,11 @@ void solve() {
     
     int source = 1;
     distances[source]  = 0;
-   
+    
+    if (n == 1 && m == 1) {
+        cout << -1 << endl;
+        return;
+    }
     
     for (int i = 0; i < n-1; i++) {
         
