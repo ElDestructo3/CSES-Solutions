@@ -12,9 +12,9 @@ const int MOD1 = 1e9 + 7;
 const int MOD2 = 998244353;
 vector<pair<int,int>> dir = {{1,0}, {0,1}, {0,-1}, {-1,0}};
 int MAXN = 3e5 + 5;
-vector<vector<int>>adjList(MAXN), reverseAdjList(MAXN);
+vector<vector<int>>adjList(MAXN), reverseAdjList(MAXN), condensedReverseAdjList(MAXN);
 vector<bool> visited(MAXN, false);
-vector<int> topological_order, comp(MAXN, -1), compValues(MAXN, 0);
+vector<int> topological_order, comp(MAXN, -1), compValues(MAXN, 0), dp(MAXN, 0);
 
 void dfs(int u) {
     visited[u] = true;
@@ -39,6 +39,15 @@ void stronglyConnectedComponents(int u, int id) {
     }
 }
 
+int DP(int i) {
+    if (dp[i]) return dp[i];
+
+    dp[i] = compValues[i];
+    for (auto v : condensedReverseAdjList[i]) {
+        dp[i] = max(dp[i], DP(v) + compValues[i]);
+    }
+    return dp[i];
+}
 
 void solve(int t) {
     
@@ -75,6 +84,17 @@ void solve(int t) {
     for (int i = 1; i <= n; i++) {
         compValues[comp[i]] += coins[i];
     }
+    for (int i = 1; i <= n; i++) {
+        for (auto v: adjList[i]) {
+            if (comp[i] == comp[v]) continue;
+            condensedReverseAdjList[comp[v]].push_back(comp[i]);
+        }
+    }
+    int ans = 0;
+    for (int i = 0; i < id; i++) {
+        ans = max(ans, DP(i));
+    }
+    cout << ans << endl;
     
 }
 
