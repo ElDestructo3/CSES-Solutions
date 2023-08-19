@@ -13,85 +13,106 @@ vector<pair<int,int>> dir = {{1,0}, {0,1}, {0,-1}, {-1,0}};
 int K = 25;
 int MAXN = 2e5 + 5;
  
-template<class T> struct segTree {
-    const T ID = 0;
- 
-    T comb(T a, T b) {
-        return max(a, b);
-    }
+class segmentTree {
  
     int n;
-    vector<T> seg;
- 
-    void init(int _n) { 
-        n = _n; 
-        seg.assign(2*n,ID); 
+    long long* segTree;
+    int outOfRange = INT_MIN;
+    vector<int> array;
+public:
+    segmentTree(vector<int> a): n(a.size()), array(a) {
+        segTree = new long long[4 * n];
+        build(0, n - 1, 0);
+    }
+
+    long long apply(int val1, int val2) {
+        return max(val1, val2);
     }
  
-	void pull(int p) { 
-        seg[p] = comb(seg[2*p],seg[2*p+1]); 
-    }
- 
-	void upd(int p, T val) { 
-		seg[p += n] += val; 
-        for (p /= 2; p; p /= 2) {
-            pull(p);
+    void build(int left, int right, int index) {
+        if (left == right) {
+            segTree[index] = array[left];
+        }
+        else {
+            build(left, (left + right) / 2, 2 * index + 1);
+            build((left + right) / 2 + 1, right, 2 * index + 2);
+            segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
         }
     }
  
-	T query(int l, int r) {	
+    long long apply_range(int left, int right) {
+        return apply_internal(0, n - 1, left, right, 0);
+    }
  
-		T ra = ID, rb = ID;
-		for (l += n, r += n+1; l < r; l /= 2, r /= 2) {
+    long long apply_internal(int tree_left, int tree_right, int left, int right, int index) {
+        if (tree_left == left && tree_right == right) {
+            return segTree[index];
+        } 
+        if (left > right) return outOfRange;
+        int child1_left = tree_left, child1_right = (tree_left + tree_right) / 2;
+        int child2_left = child1_right + 1, child2_right = tree_right;
+        return apply(apply_internal(child1_left, child1_right, left, min(right, child1_right), 2 * index + 1) 
+                , apply_internal(child2_left, child2_right, max(left, child2_left), right, 2 * index + 2));
+    }
+
+    int binary_segment_search(int val) {
+        if (segTree[0] < val) return 0;
+        return modified_apply(val, 0, n - 1, 0);
+    }
+
+    long long modified_apply(int val, int tree_left, int tree_right, int index) {
+        
+        if (tree_left == tree_right) {
+            update(tree_left, segTree[index] - val);
+            return tree_left + 1;
+        }
+        int mid = (tree_left + tree_right) / 2;
+        if (segTree[2 * index + 1] >= val) {
+            return modified_apply(val, tree_left, mid, 2 * index + 1);
+        }
+        else  {
+            return modified_apply(val, mid + 1, tree_right, 2 * index + 2);
+        }
+
+    }
  
-			if (l&1) ra = comb(ra,seg[l++]);
-			if (r&1) rb = comb(seg[--r],rb);    
-		}
+    void update(int array_index, int new_val) {
+        update_internal(0, n - 1, array_index, new_val, 0);
+    }
  
-		return comb(ra,rb);
-	}  
+    void update_internal(int tree_left, int tree_right, int array_index, int new_val, int index) {
+        if (tree_left == tree_right) {
+            segTree[index] = new_val;
+        }
+        else {
+            int mid = (tree_left + tree_right) / 2;
+            if (mid >= array_index) {
+                update_internal(tree_left, mid, array_index, new_val, 2 * index + 1);
+            }
+            else {
+                update_internal(mid + 1, tree_right, array_index, new_val, 2 * index + 2);
+            }
+            segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
+        }
+    }
+ 
 };
  
 void solve(int t) {
     int n, m;
     cin >> n >> m;
-    segTree<int> st;
-    st.init(n+1);
-    for (int i = 0; i < n;i ++) {
-        int temp;
-        cin >> temp;
-        st.upd(i+1, temp);
-
+    vector<int> a(n);
+    for (auto &v : a) {
+        cin >> v;
     }
+    segmentTree segTree = segmentTree(a);
     for (int i = 0; i < m; i++) {
-        int num;
-        cin >> num;
-        int left = 1, right = n;
-        //cout << st.query(left,right) << endl;
-        if (st.query(1, n) < num) {
-            cout << 0 << " ";
-            continue;
-        }
-        while (left <= right) {
-            if (left == right) {
-                cout << left << " ";
-                //cout << st.query(left, right) << endl;
-                st.upd(left, - num);
-                //cout << st.query(left, right) << endl;
-                //for (int j = 1; j <= n; j++) {
-                //    cout<< st.query(j, j)<< " ";
-                //}
-                //cout << endl;
-                break;
-            }
-            int mid = (left + right) / 2;
-            if (st.query(left,mid) >= num) {
-                right = mid;
-            } else {
-                left = mid + 1;
-            }
-        }
+        int val;
+        cin >> val;
+        cout << segTree.binary_segment_search(val) << " ";
     }
+
+
     
 }
     

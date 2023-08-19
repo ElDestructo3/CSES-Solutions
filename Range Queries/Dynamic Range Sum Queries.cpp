@@ -13,64 +13,85 @@ vector<pair<int,int>> dir = {{1,0}, {0,1}, {0,-1}, {-1,0}};
 int K = 25;
 int MAXN = 2e5 + 5;
  
-template<class T> struct segTree {
-    const T ID = 0;
- 
-    T comb(T a, T b) {
-        return a + b;
-    }
+class segmentTree {
  
     int n;
-    vector<T> seg;
- 
-    void init(int _n) { 
-        n = _n; 
-        seg.assign(2*n,ID); 
+    long long* segTree;
+    int outOfRange = 0;
+    vector<int> array;
+public:
+    segmentTree(vector<int> a): n(a.size()), array(a) {
+        segTree = new long long[4 * n];
+        build(0, n - 1, 0);
+    }
+
+    long long apply(int val1, int val2) {
+        return val1 + val2;
     }
  
-	void pull(int p) { 
-        seg[p] = comb(seg[2*p],seg[2*p+1]); 
-    }
- 
-	void upd(int p, T val) { 
-		seg[p += n] = val; 
-        for (p /= 2; p; p /= 2) {
-            pull(p);
+    void build(int left, int right, int index) {
+        if (left == right) {
+            segTree[index] = array[left];
+        }
+        else {
+            build(left, (left + right) / 2, 2 * index + 1);
+            build((left + right) / 2 + 1, right, 2 * index + 2);
+            segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
         }
     }
  
-	T query(int l, int r) {	
+    long long apply_range(int left, int right) {
+        return apply_internal(0, n - 1, left, right, 0);
+    }
  
-		T ra = ID, rb = ID;
-		for (l += n, r += n+1; l < r; l /= 2, r /= 2) {
+    long long apply_internal(int tree_left, int tree_right, int left, int right, int index) {
+        if (tree_left == left && tree_right == right) {
+            return segTree[index];
+        } 
+        if (left > right) return outOfRange;
+        int child1_left = tree_left, child1_right = (tree_left + tree_right) / 2;
+        int child2_left = child1_right + 1, child2_right = tree_right;
+        return apply(apply_internal(child1_left, child1_right, left, min(right, child1_right), 2 * index + 1) 
+                , apply_internal(child2_left, child2_right, max(left, child2_left), right, 2 * index + 2));
+    }
  
-			if (l&1) ra = comb(ra,seg[l++]);
-			if (r&1) rb = comb(seg[--r],rb);    
-		}
+    void update(int array_index, int new_val) {
+        update_internal(0, n - 1, array_index, new_val, 0);
+    }
  
-		return comb(ra,rb);
-	}  
+    void update_internal(int tree_left, int tree_right, int array_index, int new_val, int index) {
+        if (tree_left == tree_right) {
+            segTree[index] = new_val;
+        }
+        else {
+            int mid = (tree_left + tree_right) / 2;
+            if (mid >= array_index) {
+                update_internal(tree_left, mid, array_index, new_val, 2 * index + 1);
+            }
+            else {
+                update_internal(mid + 1, tree_right, array_index, new_val, 2 * index + 2);
+            }
+            segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
+        }
+    }
+ 
 };
  
 void solve(int t) {
-    segTree<int> st;
     int n, q;
     cin >> n >> q;
-    st.init(n+1);
-    for (int i = 1; i <= n; i++) {
-        int x;
-        cin >> x;
-        st.upd(i,x);
+    vector<int> a(n);
+    for (auto &v : a) {
+        cin >> v;
     }
+    
+    segmentTree segTree = segmentTree(a);
     while (q--) {
-        int t, x, y;
-        cin >> t >> x >> y;
-        if (t == 1) {
-            st.upd(x,y);
-        } else {
-            cout << st.query(x,y) << endl;
-        }   
-    }
+        int type, a, b;
+        cin >> type >> a >> b;
+        if (type == 2) cout << segTree.apply_range(a - 1, b - 1) << endl; 
+        else segTree.update(a - 1, b);
+    } 
     
     
 }

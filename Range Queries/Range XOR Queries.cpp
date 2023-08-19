@@ -13,61 +13,23 @@ vector<pair<int,int>> dir = {{1,0}, {0,1}, {0,-1}, {-1,0}};
 int K = 25;
 int MAXN = 2e5 + 5;
  
-template<class T> struct segTree {
-    const T ID = 0;
- 
-    T comb(T a, T b) {
-        return a ^ b;
-    }
- 
-    int n;
-    vector<T> seg;
- 
-    void init(int _n) { 
-        n = _n; 
-        seg.assign(2*n,ID); 
-    }
- 
-	void pull(int p) { 
-        seg[p] = comb(seg[2*p],seg[2*p+1]); 
-    }
- 
-	void upd(int p, T val) { 
-		seg[p += n] = val; 
-        for (p /= 2; p; p /= 2) {
-            pull(p);
-        }
-    }
- 
-	T query(int l, int r) {	
- 
-		T ra = ID, rb = ID;
-		for (l += n, r += n+1; l < r; l /= 2, r /= 2) {
- 
-			if (l&1) ra = comb(ra,seg[l++]);
-			if (r&1) rb = comb(seg[--r],rb);    
-		}
- 
-		return comb(ra,rb);
-	}  
-};
- 
 void solve(int t) {
-    segTree<int> st;
+    
     int n, q;
     cin >> n >> q;
-    st.init(n+1);
+    vector<int> a(n);
+    for (auto &v: a) {
+        cin >> v;
+    }
+    vector<int> prefixXOR(n + 1);
+    prefixXOR[0] = 0;
     for (int i = 1; i <= n; i++) {
-        int x;
-        cin >> x;
-        st.upd(i,x);
+        prefixXOR[i] = prefixXOR[i - 1] ^ a[i - 1];
     }
     while (q--) {
-        int x, y;
-        cin >> x >> y;
-        
-            cout << st.query(x,y) << endl;
-        
+        int left, right;
+        cin >> left >> right;
+        cout << (prefixXOR[right] ^ prefixXOR[left - 1]) << endl;
     }
     
     
