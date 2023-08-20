@@ -16,44 +16,62 @@ int MAXN = 2e5 + 5;
 class segmentTree {
  
     int n;
-    pair<int,int>* segTree;
-    pair<int, int> outOfRange = {0, INT_MIN};
+    int* backSegTree;
+    int* frontSegTree;
+    int outOfRange = INT_MAX;
     vector<int> array;
 public:
     segmentTree(vector<int> a): n(a.size()), array(a) {
-        segTree = new pair<int,int>[4 * n];
+        backSegTree = new int[4 * n];
+        frontSegTree = new int[4 * n];
         build(0, n - 1, 0);
     }
 
-    pair<int, int> apply(pair<int, int> val1, pair<int, int> val2) {
-        return {val1.first + val2.first, max(0LL,max(val1.second, val1.first + val2.second))};
+    int apply(int val1, int val2) {
+        return min(val1, val2);
     }
  
     void build(int left, int right, int index) {
         if (left == right) {
-            segTree[index] = {array[left], array[left]};
+            frontSegTree[index] = array[left] - left;
+            backSegTree[index] = array[left] + left;
         }
         else {
             build(left, (left + right) / 2, 2 * index + 1);
             build((left + right) / 2 + 1, right, 2 * index + 2);
-            segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
+            frontSegTree[index] = apply(frontSegTree[2 * index + 1], frontSegTree[2 * index + 2]);
+            backSegTree[index] = apply(backSegTree[2 * index + 1], backSegTree[2 * index + 2]);
         }
-		//cout << left << " " << right << " " << segTree[index].first << " " << segTree[index].second << endl;
     }
  
-    int apply_range(int left, int right) {
-        return apply_internal(0, n - 1, left, right, 0).second;
+    int apply_range(int index) {
+        //return apply_internal(0, n - 1, left, right, 0);
+        int val1 = apply_internal_front(0, n - 1, 0, index, 0);
+        int val2 = apply_internal_back(0, n - 1, index, n - 1, 0);
+        return min(val1 + index, val2 - index);
+
     }
  
-    pair<int,int> apply_internal(int tree_left, int tree_right, int left, int right, int index) {
+    int apply_internal_front(int tree_left, int tree_right, int left, int right, int index) {
         if (tree_left == left && tree_right == right) {
-            return {segTree[index].first, segTree[index].second};
+            return frontSegTree[index];
         } 
         if (left > right) return outOfRange;
         int child1_left = tree_left, child1_right = (tree_left + tree_right) / 2;
         int child2_left = child1_right + 1, child2_right = tree_right;
-        return apply(apply_internal(child1_left, child1_right, left, min(right, child1_right), 2 * index + 1) 
-                , apply_internal(child2_left, child2_right, max(left, child2_left), right, 2 * index + 2));
+        return apply(apply_internal_front(child1_left, child1_right, left, min(right, child1_right), 2 * index + 1) 
+                , apply_internal_front(child2_left, child2_right, max(left, child2_left), right, 2 * index + 2));
+    }
+
+    int apply_internal_back(int tree_left, int tree_right, int left, int right, int index) {
+        if (tree_left == left && tree_right == right) {
+            return backSegTree[index];
+        } 
+        if (left > right) return outOfRange;
+        int child1_left = tree_left, child1_right = (tree_left + tree_right) / 2;
+        int child2_left = child1_right + 1, child2_right = tree_right;
+        return apply(apply_internal_back(child1_left, child1_right, left, min(right, child1_right), 2 * index + 1) 
+                , apply_internal_back(child2_left, child2_right, max(left, child2_left), right, 2 * index + 2));
     }
  
     void update(int array_index, int new_val) {
@@ -62,7 +80,8 @@ public:
  
     void update_internal(int tree_left, int tree_right, int array_index, int new_val, int index) {
         if (tree_left == tree_right) {
-            segTree[index] = {new_val, new_val};
+            frontSegTree[index] = new_val - tree_left;
+            backSegTree[index] = new_val + tree_left;
         }
         else {
             int mid = (tree_left + tree_right) / 2;
@@ -72,7 +91,8 @@ public:
             else {
                 update_internal(mid + 1, tree_right, array_index, new_val, 2 * index + 2);
             }
-            segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
+            frontSegTree[index] = apply(frontSegTree[2 * index + 1], frontSegTree[2 * index + 2]);
+            backSegTree[index] = apply(backSegTree[2 * index + 1], backSegTree[2 * index + 2]);
         }
 		//cout << tree_left << " " << tree_right << " " << segTree[index].first << " " << segTree[index].second << endl;
     }
@@ -90,11 +110,15 @@ void solve(int t) {
     segmentTree segTree = segmentTree(a);
     while (q--) {
         int type, a, b;
-        cin >> type >> a >> b;
-        if (type == 2) {
-			cout << (max(0LL, segTree.apply_range(a - 1, b - 1))) << endl; 
-		}
-        else segTree.update(a - 1, b);
+        cin >> type;
+        if (type == 1) {
+            cin >> a >> b;
+            segTree.update(a - 1, b);
+        }
+        else {
+            cin >> a;
+            cout << segTree.apply_range(a - 1) << endl;
+        }
     } 
     
     

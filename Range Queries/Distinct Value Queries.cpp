@@ -16,38 +16,37 @@ int MAXN = 2e5 + 5;
 class segmentTree {
  
     int n;
-    pair<int,int>* segTree;
-    pair<int, int> outOfRange = {0, INT_MIN};
+    long long* segTree;
+    int outOfRange = 0;
     vector<int> array;
 public:
     segmentTree(vector<int> a): n(a.size()), array(a) {
-        segTree = new pair<int,int>[4 * n];
+        segTree = new long long[4 * n];
         build(0, n - 1, 0);
     }
 
-    pair<int, int> apply(pair<int, int> val1, pair<int, int> val2) {
-        return {val1.first + val2.first, max(0LL,max(val1.second, val1.first + val2.second))};
+    long long apply(int val1, int val2) {
+        return val1 + val2;
     }
  
     void build(int left, int right, int index) {
         if (left == right) {
-            segTree[index] = {array[left], array[left]};
+            segTree[index] = array[left];
         }
         else {
             build(left, (left + right) / 2, 2 * index + 1);
             build((left + right) / 2 + 1, right, 2 * index + 2);
             segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
         }
-		//cout << left << " " << right << " " << segTree[index].first << " " << segTree[index].second << endl;
     }
  
-    int apply_range(int left, int right) {
-        return apply_internal(0, n - 1, left, right, 0).second;
+    long long apply_range(int left, int right) {
+        return apply_internal(0, n - 1, left, right, 0);
     }
  
-    pair<int,int> apply_internal(int tree_left, int tree_right, int left, int right, int index) {
+    long long apply_internal(int tree_left, int tree_right, int left, int right, int index) {
         if (tree_left == left && tree_right == right) {
-            return {segTree[index].first, segTree[index].second};
+            return segTree[index];
         } 
         if (left > right) return outOfRange;
         int child1_left = tree_left, child1_right = (tree_left + tree_right) / 2;
@@ -62,7 +61,7 @@ public:
  
     void update_internal(int tree_left, int tree_right, int array_index, int new_val, int index) {
         if (tree_left == tree_right) {
-            segTree[index] = {new_val, new_val};
+            segTree[index] = new_val;
         }
         else {
             int mid = (tree_left + tree_right) / 2;
@@ -74,7 +73,6 @@ public:
             }
             segTree[index] = apply(segTree[2 * index + 1], segTree[2 * index + 2]);
         }
-		//cout << tree_left << " " << tree_right << " " << segTree[index].first << " " << segTree[index].second << endl;
     }
  
 };
@@ -86,16 +84,34 @@ void solve(int t) {
     for (auto &v : a) {
         cin >> v;
     }
-    
-    segmentTree segTree = segmentTree(a);
-    while (q--) {
-        int type, a, b;
-        cin >> type >> a >> b;
-        if (type == 2) {
-			cout << (max(0LL, segTree.apply_range(a - 1, b - 1))) << endl; 
-		}
-        else segTree.update(a - 1, b);
-    } 
+    vector<int> b(n, 0);
+    segmentTree segTree = segmentTree(b);
+
+    vector<vector<pair<int,int>>> queries(n + 1);
+    vector<int> query_answers(q);
+    for (int i = 0; i < q; i++) {
+        int a, b;
+        cin >> a >> b;
+        queries[a].push_back({b, i}); 
+    }
+    map<int, int> last_index;
+    for (int i = n; i >= 1; i--) {
+        int val = a[i - 1];
+        if (last_index.find(val) != last_index.end()) {
+            segTree.update(last_index[val] - 1, 0);
+        }
+        last_index[val] = i;
+        segTree.update(i - 1, 1);
+
+        for (auto query: queries[i]) {
+            query_answers[query.second] = segTree.apply_range(0, query.first - 1);
+        }
+    }
+
+    for (auto &ans : query_answers) {
+        cout << ans << endl;
+    }
+
     
     
 }
@@ -106,6 +122,7 @@ signed main() {
     #ifndef ONLINE_JUDGE
     freopen("input.txt", "r", stdin);
     freopen("output.txt", "w", stdout);
+    freopen("error.txt", "w", stderr);
     #endif
     
     
